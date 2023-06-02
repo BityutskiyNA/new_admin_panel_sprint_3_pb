@@ -1,0 +1,5 @@
+#.env.sample
+#.env.sample.db
+db.sqlite-journal
+db.sqlite
+app.log

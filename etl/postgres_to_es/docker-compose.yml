@@ -1,0 +1,69 @@
+services:
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    expose:
+      - 8000
+    env_file:
+      - .env.sample
+    depends_on:
+      - db
+  db:
+    image: postgres:14-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - ./postgres_data:/var/bk/
+    env_file:
+      - .env.sample.db
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    ports:
+      - 8000:80
+    depends_on:
+      - web
+
+  etl:
+    build: ./ETL
+    volumes:
+      - ./ETL/:/usr/src/ETL/
+    env_file:
+      - .env.sample
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+      image: docker.elastic.co/elasticsearch/elasticsearch:7.7.0
+      container_name: elasticsearch
+      environment:
+        - xpack.security.enabled=false
+        - discovery.type=single-node
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+        nofile:
+          soft: 65536
+          hard: 65536
+      cap_add:
+        - IPC_LOCK
+      volumes:
+        - elasticsearch-data:/usr/share/elasticsearch/data
+      env_file:
+        - .env.sample
+      expose:
+        - 9200
+      ports:
+        - 9200:9200
+      depends_on:
+        - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  elasticsearch-data:
